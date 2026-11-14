@@ -1,0 +1,6 @@
+{
+  "name": "DashForge — Geometry Dash Web",
+  "description": "Rhythm-based action platformer with authentic 240Hz Geometry Dash physics across all 7 game modes, Official Levels, Level Editor, Online Level Server, Icon Kit, and Firebase cloud persistence.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

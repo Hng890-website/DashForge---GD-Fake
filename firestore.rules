@@ -1,0 +1,299 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedUser() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    function isValidIconConfig(cfg) {
+      return cfg is map
+        && cfg.keys().hasAll(['cubeId', 'shipId', 'ballId', 'ufoId', 'waveId', 'robotId', 'spiderId', 'primaryColor', 'secondaryColor', 'trailStyle'])
+        && cfg.keys().hasOnly(['cubeId', 'shipId', 'ballId', 'ufoId', 'waveId', 'robotId', 'spiderId', 'primaryColor', 'secondaryColor', 'trailStyle'])
+        && cfg.cubeId is int && cfg.cubeId >= 0 && cfg.cubeId <= 20
+        && cfg.shipId is int && cfg.shipId >= 0 && cfg.shipId <= 20
+        && cfg.ballId is int && cfg.ballId >= 0 && cfg.ballId <= 20
+        && cfg.ufoId is int && cfg.ufoId >= 0 && cfg.ufoId <= 20
+        && cfg.waveId is int && cfg.waveId >= 0 && cfg.waveId <= 20
+        && cfg.robotId is int && cfg.robotId >= 0 && cfg.robotId <= 20
+        && cfg.spiderId is int && cfg.spiderId >= 0 && cfg.spiderId <= 20
+        && cfg.primaryColor is string && cfg.primaryColor.size() >= 4 && cfg.primaryColor.size() <= 16
+        && cfg.secondaryColor is string && cfg.secondaryColor.size() >= 4 && cfg.secondaryColor.size() <= 16
+        && cfg.trailStyle is string && cfg.trailStyle.size() >= 1 && cfg.trailStyle.size() <= 24;
+    }
+
+    function isValidPlayerPublic(data, uid) {
+      return data.keys().hasAll(['uid', 'displayName', 'stars', 'coins', 'completedCount', 'totalAttempts', 'totalJumps', 'iconConfig', 'updatedAt'])
+        && data.keys().hasOnly(['uid', 'displayName', 'stars', 'coins', 'completedCount', 'totalAttempts', 'totalJumps', 'iconConfig', 'updatedAt'])
+        && data.uid == uid
+        && data.uid == request.auth.uid
+        && data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 32
+        && data.stars is int && data.stars >= 0 && data.stars <= 100000
+        && data.coins is int && data.coins >= 0 && data.coins <= 10000
+        && data.completedCount is int && data.completedCount >= 0 && data.completedCount <= 10000
+        && data.totalAttempts is int && data.totalAttempts >= 0 && data.totalAttempts <= 10000000
+        && data.totalJumps is int && data.totalJumps >= 0 && data.totalJumps <= 100000000
+        && isValidIconConfig(data.iconConfig)
+        && data.updatedAt == request.time;
+    }
+
+    function isValidSettings(s) {
+      return s is map
+        && s.keys().hasAll(['musicVolume', 'sfxVolume', 'autoCheckpoints', 'showHitboxes'])
+        && s.keys().hasOnly(['musicVolume', 'sfxVolume', 'autoCheckpoints', 'showHitboxes'])
+        && s.musicVolume is number && s.musicVolume >= 0 && s.musicVolume <= 1
+        && s.sfxVolume is number && s.sfxVolume >= 0 && s.sfxVolume <= 1
+        && s.autoCheckpoints is bool
+        && s.showHitboxes is bool;
+    }
+
+    function isValidPlayerPrivate(data, uid) {
+      return data.keys().hasAll(['uid', 'email', 'settings', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['uid', 'email', 'settings', 'createdAt', 'updatedAt'])
+        && data.uid == uid
+        && data.uid == request.auth.uid
+        && data.email is string && data.email.size() >= 3 && data.email.size() <= 254
+        && isValidSettings(data.settings)
+        && data.createdAt is timestamp
+        && data.updatedAt == request.time;
+    }
+
+    function isValidLevelProgress(data, uid, levelId) {
+      return data.keys().hasAll(['uid', 'levelId', 'normalPercent', 'practicePercent', 'attempts', 'coinsCollected', 'completed', 'updatedAt'])
+        && data.keys().hasOnly(['uid', 'levelId', 'normalPercent', 'practicePercent', 'attempts', 'coinsCollected', 'completed', 'updatedAt'])
+        && data.uid == uid
+        && data.uid == request.auth.uid
+        && data.levelId == levelId
+        && data.normalPercent is int && data.normalPercent >= 0 && data.normalPercent <= 100
+        && data.practicePercent is int && data.practicePercent >= 0 && data.practicePercent <= 100
+        && data.attempts is int && data.attempts >= 0 && data.attempts <= 10000000
+        && data.coinsCollected is list && data.coinsCollected.size() <= 3
+        && (data.coinsCollected.size() == 0 || data.coinsCollected[0] is int)
+        && data.completed is bool
+        && data.updatedAt == request.time;
+    }
+
+    function isValidGameMode(mode) {
+      return mode in ['cube', 'ship', 'ball', 'ufo', 'wave', 'robot', 'spider'];
+    }
+
+    function isValidSpeed(speed) {
+      return speed in ['0.5x', '1x', '2x', '3x', '4x'];
+    }
+
+    function isValidDifficulty(diff) {
+      return diff in ['Easy', 'Normal', 'Hard', 'Harder', 'Insane', 'Demon'];
+    }
+
+    function isValidDraftLevel(data, uid, draftId) {
+      return data.keys().hasAll(['uid', 'draftId', 'name', 'songId', 'bgColor', 'groundColor', 'startMode', 'startSpeed', 'startGravity', 'objects', 'verified', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['uid', 'draftId', 'name', 'songId', 'bgColor', 'groundColor', 'startMode', 'startSpeed', 'startGravity', 'objects', 'verified', 'createdAt', 'updatedAt'])
+        && data.uid == uid
+        && data.uid == request.auth.uid
+        && data.draftId == draftId
+        && data.name is string && data.name.size() >= 1 && data.name.size() <= 40
+        && data.songId is string && data.songId.size() >= 1 && data.songId.size() <= 32
+        && data.bgColor is string && data.bgColor.size() >= 4 && data.bgColor.size() <= 16
+        && data.groundColor is string && data.groundColor.size() >= 4 && data.groundColor.size() <= 16
+        && isValidGameMode(data.startMode)
+        && isValidSpeed(data.startSpeed)
+        && data.startGravity in [1, -1]
+        && data.objects is list && data.objects.size() <= 1500
+        && (data.objects.size() == 0 || data.objects[0] is map)
+        && data.verified is bool
+        && data.createdAt is timestamp
+        && data.updatedAt == request.time;
+    }
+
+    function isValidServerLevel(data, levelId) {
+      return data.keys().hasAll(['levelId', 'authorUid', 'authorName', 'name', 'description', 'difficulty', 'stars', 'songId', 'bgColor', 'groundColor', 'startMode', 'startSpeed', 'startGravity', 'objects', 'plays', 'likes', 'verified', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['levelId', 'authorUid', 'authorName', 'name', 'description', 'difficulty', 'stars', 'songId', 'bgColor', 'groundColor', 'startMode', 'startSpeed', 'startGravity', 'objects', 'plays', 'likes', 'verified', 'createdAt', 'updatedAt'])
+        && data.levelId == levelId
+        && isValidId(data.authorUid)
+        && data.authorName is string && data.authorName.size() >= 1 && data.authorName.size() <= 32
+        && data.name is string && data.name.size() >= 1 && data.name.size() <= 40
+        && data.description is string && data.description.size() <= 160
+        && isValidDifficulty(data.difficulty)
+        && data.stars is int && data.stars >= 1 && data.stars <= 10
+        && data.songId is string && data.songId.size() >= 1 && data.songId.size() <= 32
+        && data.bgColor is string && data.bgColor.size() >= 4 && data.bgColor.size() <= 16
+        && data.groundColor is string && data.groundColor.size() >= 4 && data.groundColor.size() <= 16
+        && isValidGameMode(data.startMode)
+        && isValidSpeed(data.startSpeed)
+        && data.startGravity in [1, -1]
+        && data.objects is list && data.objects.size() >= 1 && data.objects.size() <= 1500
+        && data.objects[0] is map
+        && data.plays is int && data.plays >= 0
+        && data.likes is int && data.likes >= 0
+        && data.verified is bool
+        && data.createdAt is timestamp
+        && data.updatedAt == request.time;
+    }
+
+    function isValidComment(data, levelId, commentId) {
+      return data.keys().hasAll(['commentId', 'levelId', 'authorUid', 'authorName', 'text', 'percent', 'createdAt'])
+        && data.keys().hasOnly(['commentId', 'levelId', 'authorUid', 'authorName', 'text', 'percent', 'createdAt'])
+        && data.commentId == commentId
+        && data.levelId == levelId
+        && data.authorUid == request.auth.uid
+        && data.authorName is string && data.authorName.size() >= 1 && data.authorName.size() <= 32
+        && data.text is string && data.text.size() >= 1 && data.text.size() <= 200
+        && data.percent is int && data.percent >= 0 && data.percent <= 100
+        && data.createdAt == request.time;
+    }
+
+    function isValidLike(data, levelId, uid) {
+      return data.keys().hasAll(['uid', 'levelId', 'createdAt'])
+        && data.keys().hasOnly(['uid', 'levelId', 'createdAt'])
+        && data.uid == uid
+        && data.uid == request.auth.uid
+        && data.levelId == levelId
+        && data.createdAt == request.time;
+    }
+
+    // 1. Public Player Profiles (No PII - safe for leaderboard queries)
+    match /playersPublic/{uid} {
+      allow get: if isValidId(uid);
+      allow list: if existing().stars is int && existing().stars >= 0;
+      allow create: if isValidId(uid) && isVerifiedUser() && isOwner(uid) && isValidPlayerPublic(incoming(), uid);
+      allow update: if isValidId(uid) && isVerifiedUser() && isOwner(uid)
+        && isValidPlayerPublic(incoming(), uid)
+        && incoming().uid == existing().uid
+        && incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'stars', 'coins', 'completedCount', 'totalAttempts', 'totalJumps', 'iconConfig', 'updatedAt']);
+      allow delete: if false;
+    }
+
+    // 2. Private Player Account & Subcollections (Strict Owner-Only PII Isolation)
+    match /playersPrivate/{uid} {
+      allow get: if isValidId(uid) && isOwner(uid);
+      allow list: if false;
+      allow create: if isValidId(uid) && isVerifiedUser() && isOwner(uid)
+        && isValidPlayerPrivate(incoming(), uid)
+        && incoming().createdAt == request.time;
+      allow update: if isValidId(uid) && isVerifiedUser() && isOwner(uid)
+        && isValidPlayerPrivate(incoming(), uid)
+        && incoming().uid == existing().uid
+        && incoming().createdAt == existing().createdAt
+        && incoming().diff(existing()).affectedKeys().hasOnly(['email', 'settings', 'updatedAt']);
+      allow delete: if false;
+
+      match /progress/{levelId} {
+        allow get: if isValidId(uid) && isValidId(levelId) && isOwner(uid);
+        allow list: if isOwner(uid) && existing().uid == request.auth.uid;
+        allow create: if isValidId(uid) && isValidId(levelId) && isVerifiedUser() && isOwner(uid)
+          && exists(/databases/$(database)/documents/playersPrivate/$(uid))
+          && isValidLevelProgress(incoming(), uid, levelId);
+        allow update: if isValidId(uid) && isValidId(levelId) && isVerifiedUser() && isOwner(uid)
+          && isValidLevelProgress(incoming(), uid, levelId)
+          && incoming().uid == existing().uid
+          && incoming().levelId == existing().levelId
+          && incoming().diff(existing()).affectedKeys().hasOnly(['normalPercent', 'practicePercent', 'attempts', 'coinsCollected', 'completed', 'updatedAt']);
+        allow delete: if isValidId(uid) && isValidId(levelId) && isOwner(uid);
+      }
+
+      match /drafts/{draftId} {
+        allow get: if isValidId(uid) && isValidId(draftId) && isOwner(uid);
+        allow list: if isOwner(uid) && existing().uid == request.auth.uid;
+        allow create: if isValidId(uid) && isValidId(draftId) && isVerifiedUser() && isOwner(uid)
+          && exists(/databases/$(database)/documents/playersPrivate/$(uid))
+          && isValidDraftLevel(incoming(), uid, draftId)
+          && incoming().createdAt == request.time;
+        allow update: if isValidId(uid) && isValidId(draftId) && isVerifiedUser() && isOwner(uid)
+          && isValidDraftLevel(incoming(), uid, draftId)
+          && incoming().uid == existing().uid
+          && incoming().draftId == existing().draftId
+          && incoming().createdAt == existing().createdAt
+          && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'songId', 'bgColor', 'groundColor', 'startMode', 'startSpeed', 'startGravity', 'objects', 'verified', 'updatedAt']);
+        allow delete: if isValidId(uid) && isValidId(draftId) && isOwner(uid);
+      }
+    }
+
+    // 3. Community Server Levels
+    match /serverLevels/{levelId} {
+      allow get: if isValidId(levelId);
+      allow list: if existing().verified == true || (isSignedIn() && existing().authorUid == request.auth.uid);
+      allow create: if isValidId(levelId) && isVerifiedUser()
+        && incoming().authorUid == request.auth.uid
+        && incoming().plays == 0
+        && incoming().likes == 0
+        && incoming().createdAt == request.time
+        && isValidServerLevel(incoming(), levelId);
+      allow update: if isValidId(levelId) && isVerifiedUser()
+        && isValidServerLevel(incoming(), levelId)
+        && incoming().levelId == existing().levelId
+        && incoming().authorUid == existing().authorUid
+        && incoming().createdAt == existing().createdAt
+        && (
+          // Action 1: Author edits level metadata or geometry
+          (
+            existing().authorUid == request.auth.uid
+            && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'description', 'difficulty', 'stars', 'songId', 'bgColor', 'groundColor', 'startMode', 'startSpeed', 'startGravity', 'objects', 'verified', 'updatedAt'])
+          )
+          ||
+          // Action 2: Atomic Like / Unlike paired with likes subdocument
+          (
+            incoming().diff(existing()).affectedKeys().hasOnly(['likes', 'updatedAt'])
+            && (
+              (incoming().likes == existing().likes + 1 && existsAfter(/databases/$(database)/documents/serverLevels/$(levelId)/likes/$(request.auth.uid)))
+              ||
+              (incoming().likes == existing().likes - 1 && !existsAfter(/databases/$(database)/documents/serverLevels/$(levelId)/likes/$(request.auth.uid)))
+            )
+          )
+          ||
+          // Action 3: Increment play count by 1
+          (
+            incoming().diff(existing()).affectedKeys().hasOnly(['plays', 'updatedAt'])
+            && incoming().plays == existing().plays + 1
+          )
+        );
+      allow delete: if isValidId(levelId) && isVerifiedUser() && existing().authorUid == request.auth.uid;
+
+      match /likes/{uid} {
+        allow get: if isValidId(levelId) && isValidId(uid) && isOwner(uid);
+        allow list: if isSignedIn() && existing().uid == request.auth.uid;
+        allow create: if isValidId(levelId) && isValidId(uid) && isVerifiedUser() && isOwner(uid)
+          && exists(/databases/$(database)/documents/serverLevels/$(levelId))
+          && isValidLike(incoming(), levelId, uid)
+          && getAfter(/databases/$(database)/documents/serverLevels/$(levelId)).data.likes == get(/databases/$(database)/documents/serverLevels/$(levelId)).data.likes + 1;
+        allow update: if false;
+        allow delete: if isValidId(levelId) && isValidId(uid) && isVerifiedUser() && isOwner(uid)
+          && exists(/databases/$(database)/documents/serverLevels/$(levelId))
+          && getAfter(/databases/$(database)/documents/serverLevels/$(levelId)).data.likes == get(/databases/$(database)/documents/serverLevels/$(levelId)).data.likes - 1;
+      }
+
+      match /comments/{commentId} {
+        allow get: if isValidId(levelId) && isValidId(commentId);
+        allow list: if existing().levelId == levelId;
+        allow create: if isValidId(levelId) && isValidId(commentId) && isVerifiedUser()
+          && exists(/databases/$(database)/documents/serverLevels/$(levelId))
+          && isValidComment(incoming(), levelId, commentId);
+        allow update: if false;
+        allow delete: if isValidId(levelId) && isValidId(commentId) && isVerifiedUser() && existing().authorUid == request.auth.uid;
+      }
+    }
+  }
+}

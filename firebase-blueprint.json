@@ -1,0 +1,227 @@
+{
+  "entities": {
+    "PlayerPublic": {
+      "title": "PlayerPublic",
+      "description": "Public player profile, icon loadout, and leaderboard stats (zero PII).",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 32
+        },
+        "stars": { "type": "integer" },
+        "coins": { "type": "integer" },
+        "completedCount": { "type": "integer" },
+        "totalAttempts": { "type": "integer" },
+        "totalJumps": { "type": "integer" },
+        "iconConfig": { "type": "object" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "displayName", "stars", "coins", "completedCount", "totalAttempts", "totalJumps", "iconConfig", "updatedAt"]
+    },
+    "PlayerPrivate": {
+      "title": "PlayerPrivate",
+      "description": "Private player account data and audio/gameplay settings.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "email": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 254
+        },
+        "settings": { "type": "object" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email", "settings", "createdAt", "updatedAt"]
+    },
+    "PlayerLevelProgress": {
+      "title": "PlayerLevelProgress",
+      "description": "Per-level progress, attempt counter, and coins collected for a player.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "levelId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "normalPercent": { "type": "integer" },
+        "practicePercent": { "type": "integer" },
+        "attempts": { "type": "integer" },
+        "coinsCollected": { "type": "array" },
+        "completed": { "type": "boolean" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "levelId", "normalPercent", "practicePercent", "attempts", "coinsCollected", "completed", "updatedAt"]
+    },
+    "PlayerDraftLevel": {
+      "title": "PlayerDraftLevel",
+      "description": "User-created level draft stored privately before publishing to server.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "draftId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "name": { "type": "string", "minLength": 1, "maxLength": 40 },
+        "songId": { "type": "string", "minLength": 1, "maxLength": 32 },
+        "bgColor": { "type": "string", "minLength": 4, "maxLength": 16 },
+        "groundColor": { "type": "string", "minLength": 4, "maxLength": 16 },
+        "startMode": { "type": "string", "enum": ["cube", "ship", "ball", "ufo", "wave", "robot", "spider"] },
+        "startSpeed": { "type": "string", "enum": ["0.5x", "1x", "2x", "3x", "4x"] },
+        "startGravity": { "type": "integer" },
+        "objects": { "type": "array" },
+        "verified": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "draftId", "name", "songId", "bgColor", "groundColor", "startMode", "startSpeed", "startGravity", "objects", "verified", "createdAt", "updatedAt"]
+    },
+    "ServerLevel": {
+      "title": "ServerLevel",
+      "description": "Community-published Geometry Dash level on the online server.",
+      "type": "object",
+      "properties": {
+        "levelId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "authorUid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "authorName": { "type": "string", "minLength": 1, "maxLength": 32 },
+        "name": { "type": "string", "minLength": 1, "maxLength": 40 },
+        "description": { "type": "string", "maxLength": 160 },
+        "difficulty": { "type": "string", "enum": ["Easy", "Normal", "Hard", "Harder", "Insane", "Demon"] },
+        "stars": { "type": "integer" },
+        "songId": { "type": "string", "minLength": 1, "maxLength": 32 },
+        "bgColor": { "type": "string", "minLength": 4, "maxLength": 16 },
+        "groundColor": { "type": "string", "minLength": 4, "maxLength": 16 },
+        "startMode": { "type": "string", "enum": ["cube", "ship", "ball", "ufo", "wave", "robot", "spider"] },
+        "startSpeed": { "type": "string", "enum": ["0.5x", "1x", "2x", "3x", "4x"] },
+        "startGravity": { "type": "integer" },
+        "objects": { "type": "array" },
+        "plays": { "type": "integer" },
+        "likes": { "type": "integer" },
+        "verified": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["levelId", "authorUid", "authorName", "name", "description", "difficulty", "stars", "songId", "bgColor", "groundColor", "startMode", "startSpeed", "startGravity", "objects", "plays", "likes", "verified", "createdAt", "updatedAt"]
+    },
+    "ServerLevelLike": {
+      "title": "ServerLevelLike",
+      "description": "Atomic like record for a server level.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "levelId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "levelId", "createdAt"]
+    },
+    "ServerLevelComment": {
+      "title": "ServerLevelComment",
+      "description": "Player comment on a community server level.",
+      "type": "object",
+      "properties": {
+        "commentId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "levelId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "authorUid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "authorName": { "type": "string", "minLength": 1, "maxLength": 32 },
+        "text": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "percent": { "type": "integer" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["commentId", "levelId", "authorUid", "authorName", "text", "percent", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/playersPublic/{uid}": {
+      "schema": { "$ref": "#/entities/PlayerPublic" },
+      "description": "Public player profile and icon loadout for leaderboards."
+    },
+    "/playersPrivate/{uid}": {
+      "schema": { "$ref": "#/entities/PlayerPrivate" },
+      "description": "Owner-only private player settings and email."
+    },
+    "/playersPrivate/{uid}/progress/{levelId}": {
+      "schema": { "$ref": "#/entities/PlayerLevelProgress" },
+      "description": "Owner-only level completion percentages, attempts, and coins."
+    },
+    "/playersPrivate/{uid}/drafts/{draftId}": {
+      "schema": { "$ref": "#/entities/PlayerDraftLevel" },
+      "description": "Owner-only custom level editor drafts."
+    },
+    "/serverLevels/{levelId}": {
+      "schema": { "$ref": "#/entities/ServerLevel" },
+      "description": "Published community Geometry Dash levels."
+    },
+    "/serverLevels/{levelId}/likes/{uid}": {
+      "schema": { "$ref": "#/entities/ServerLevelLike" },
+      "description": "Per-user atomic likes on server levels."
+    },
+    "/serverLevels/{levelId}/comments/{commentId}": {
+      "schema": { "$ref": "#/entities/ServerLevelComment" },
+      "description": "Comments posted by players on server levels."
+    }
+  }
+}
